@@ -1,0 +1,150 @@
+version: "3"
+
+# Services
+services:
+  portainer:
+    container_name: portainer
+    image: portainer/portainer
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer-volume:/data
+    ports:
+      - "9000:9000"
+    restart: always
+
+  elasticsearch:
+    container_name: elasticsearch
+    image: blacktop/elasticsearch:6.2.2
+    volumes:
+      - es-volume:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    environment:
+      - "cluster.name=snowplow"
+      - "http.host=0.0.0.0"
+      - "http.cors.enabled=true"
+      - "http.cors.allow-origin=*"
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - "bootstrap.memory_lock=true"
+    cap_add:
+      - IPC_LOCK
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+
+  kibana:
+    container_name: kibana
+    image: blacktop/kibana:6.2.2
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+
+  head:
+    container_name: head
+    image: kazgurs/elasticsearch-head:latest
+    ports:
+      - "9100:9100"
+    depends_on:
+      - elasticsearch
+
+  iglu:
+    container_name: iglu
+    image: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./iglu:/usr/share/nginx/html:ro
+    command: /bin/bash -c "echo 'autoindex on;' > /etc/nginx/conf.d/autoindex.conf && nginx -g 'daemon off;'"
+
+  nsqlookupd:
+    container_name: nsqlookupd
+    image: nsqio/nsq
+    command: /nsqlookupd
+    ports:
+      - "4160:4160"
+      - "4161:4161"
+
+  nsqd:
+    container_name: nsqd
+    image: nsqio/nsq
+    command: /nsqd --lookupd-tcp-address=nsqlookupd:4160
+    depends_on:
+      - nsqlookupd
+    ports:
+      - "4150:4150"
+      - "4151:4151"
+
+  nsqadmin:
+    container_name: nsqadmin
+    image: nsqio/nsq
+    command: /nsqadmin --lookupd-http-address=nsqlookupd:4161
+    depends_on:
+      - nsqlookupd
+    ports:
+      - "4171:4171"
+
+  stream-collector:
+    container_name: stream-collector
+    image: snowplow-docker-registry.bintray.io/snowplow/scala-stream-collector:0.12.0
+    command: [ "--config", "/snowplow/config/stream-collector.hocon" ]
+    depends_on:
+      - nsqd
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./config:/snowplow/config
+    environment:
+      - "SP_JAVA_OPTS=-Xms256m -Xmx256m"
+
+  stream-enrich:
+    container_name: stream-enrich
+    image: snowplow-docker-registry.bintray.io/snowplow/stream-enrich:0.13.0
+    command: [
+      "--config", "/snowplow/config/stream-enrich.hocon",
+      "--resolver", "file:/snowplow/config/resolver.json",
+      "--enrichments", "file:/snowplow/config/enrichments",
+      "--force-ip-lookups-download"
+    ]
+    depends_on:
+      - stream-collector
+    links:
+      - iglu
+    volumes:
+      - ./config:/snowplow/config
+    environment:
+      - "SP_JAVA_OPTS=-Xms256m -Xmx256m"
+
+  elasticsearch-loader-good:
+    container_name: elasticsearch-loader-good
+    image: snowplow-docker-registry.bintray.io/snowplow/elasticsearch-loader:0.10.1
+    command: ["--config", "/snowplow/config/elasticsearch-loader-good.hocon"]
+    depends_on:
+      - stream-collector
+      - elasticsearch
+    volumes:
+      - ./config:/snowplow/config
+    environment:
+      - "SP_JAVA_OPTS=-Xms256m -Xmx256m"
+
+  elasticsearch-loader-bad:
+    container_name: elasticsearch-loader-bad
+    image: snowplow-docker-registry.bintray.io/snowplow/elasticsearch-loader:0.10.1
+    command: ["--config", "/snowplow/config/elasticsearch-loader-bad.hocon"]
+    depends_on:
+      - stream-collector
+      - elasticsearch
+    volumes:
+      - ./config:/snowplow/config
+    environment:
+      - "SP_JAVA_OPTS=-Xms256m -Xmx256m"
+
+
+# Volumes
+volumes:
+  es-volume:
+  portainer-volume:

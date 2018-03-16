@@ -1,0 +1,58 @@
+source = nsq
+
+sink {
+  good = elasticsearch
+  bad = stderr
+}
+
+enabled = good
+
+aws {
+  accessKey = default
+  secretKey = default
+}
+
+nsq {
+  channelName = good-loader
+  host = nsqlookupd
+  port = 4150
+  lookupPort = 4161
+}
+
+kinesis {
+  initialPosition = TRIM_HORIZON
+  maxRecords = 200
+  region = us-east-1
+  appName = loader
+}
+
+streams {
+  inStreamName = enriched
+  outStreamName = bad
+
+  buffer {
+    byteLimit = 100
+    recordLimit = 1 # emit every record for testing purposes - NOT suitable for prod
+    timeLimit = 100
+  }
+}
+
+elasticsearch {
+  client {
+    endpoint = elasticsearch
+    port = 9200
+    maxTimeout = 5
+    ssl = false
+  }
+
+  aws {
+    signing = false
+    region = us-east-1
+  }
+
+  cluster {
+    name = snowplow
+    index = "<good-{now/d}>"
+    clusterType = good
+  }
+}
