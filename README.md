@@ -14,7 +14,6 @@ Other components:
 - [nsq][nsq] - for realtime messaging
 - [elasticsearch-head][head] - for interacting with elasticsearch
 - [iglu repository][iglu] - for hosting your snowplow schemas
-- [Portainer][portainer] - management of your Docker stack
 
 ## Usage
 
@@ -35,8 +34,6 @@ Other components:
 - Elasticsearch: 9200
 
 - Iglu repository: 80
-
-- Portainer: 9000
 
 ## Example use case
 
@@ -65,4 +62,3 @@ This is useful as a Snowplow Mini alternative, demonstrating the whole Snowplow 
 [nsq]: http://nsq.io/
 [head]: https://mobz.github.io/elasticsearch-head/
 [iglu]: https://github.com/snowplow/iglu
-[portainer]: https://portainer.io/

@@ -2,16 +2,6 @@ version: "3"
 
 # Services
 services:
-  portainer:
-    container_name: portainer
-    image: portainer/portainer
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer-volume:/data
-    ports:
-      - "9000:9000"
-    restart: always
-
   elasticsearch:
     container_name: elasticsearch
     image: blacktop/elasticsearch:6.2.2
@@ -147,4 +137,3 @@ services:
 # Volumes
 volumes:
   es-volume:
-  portainer-volume:
