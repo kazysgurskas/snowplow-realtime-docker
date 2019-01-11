@@ -1,51 +1,31 @@
 enrich {
-  source = nsq
-  sink = nsq
-
-  aws {
-    accessKey = default
-    secretKey = default
-  }
-  
   streams {
-    in.raw = raw
-
+    in {
+      raw = raw
+    }
     out {
       enriched = enriched
       bad = bad
       partitionKey = event_id
     }
-
-    kinesis {
-      region = us-east-1
-      maxRecords = 2000
-      initialPosition = TRIM_HORIZON
+    sourceSink {
+      enabled = nsq
+      rawChannel = enrich
+      host = nsqd
+      port = 4150
+      lookupHost = nsqlookupd
+      lookupPort = 4161
 
       backoffPolicy {
         minBackoff = 200
         maxBackoff = 1000
       }
     }
-
-    kafka {
-      brokers = "kafka:9092"
-      retries = 5
-    }
-
-    nsq {
-      rawChannel = enrich
-      host = nsqd
-      port = 4150
-      lookupHost = nsqlookupd
-      lookupPort = 4161
-    }
-
     buffer {
       byteLimit = 100
       recordLimit = 1 # emit every record for testing purposes - NOT suitable for prod
       timeLimit = 100
     }
-
     appName = "enrich"
   }
 }

@@ -4,7 +4,7 @@ version: "3"
 services:
   elasticsearch:
     container_name: elasticsearch
-    image: blacktop/elasticsearch:6.2.2
+    image: blacktop/elasticsearch:6.5.4
     volumes:
       - es-volume:/usr/share/elasticsearch/data
     ports:
@@ -28,7 +28,7 @@ services:
 
   kibana:
     container_name: kibana
-    image: blacktop/kibana:6.2.2
+    image: blacktop/kibana:6.5.4
     ports:
       - "5601:5601"
     depends_on:
@@ -80,7 +80,7 @@ services:
 
   stream-collector:
     container_name: stream-collector
-    image: snowplow-docker-registry.bintray.io/snowplow/scala-stream-collector:0.12.0
+    image: snowplow-docker-registry.bintray.io/snowplow/scala-stream-collector-nsq:0.14.0
     command: [ "--config", "/snowplow/config/stream-collector.hocon" ]
     depends_on:
       - nsqd
@@ -93,12 +93,12 @@ services:
 
   stream-enrich:
     container_name: stream-enrich
-    image: snowplow-docker-registry.bintray.io/snowplow/stream-enrich:0.13.0
+    image: snowplow-docker-registry.bintray.io/snowplow/stream-enrich-nsq:0.19.0
     command: [
       "--config", "/snowplow/config/stream-enrich.hocon",
       "--resolver", "file:/snowplow/config/resolver.json",
       "--enrichments", "file:/snowplow/config/enrichments",
-      "--force-ip-lookups-download"
+      "--force-cached-files-download"
     ]
     depends_on:
       - stream-collector
